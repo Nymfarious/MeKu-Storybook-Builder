@@ -255,13 +255,13 @@ export default function GraphicNovelBuilder(){
   const onGenerateText = ()=>{
     if(!selectedNode || selectedNode.kind!=="leaf") return;
     const randomPrompt = storyPrompts[Math.floor(Math.random() * storyPrompts.length)];
-    updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, n=> n.kind!=="leaf"? n as any : ({
+    updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, n=> n.kind!=="leaf"? n : ({
       ...n,
       textProps:{
         ...n.textProps,
         text: appendGeneratedLine(n.textProps.text || "", randomPrompt)
       }
-    })));
+    })) as SplitNode);
   };
 
   // Enhanced AI image generation
@@ -296,11 +296,11 @@ export default function GraphicNovelBuilder(){
         throw new Error("No image URL received from generation service");
       }
 
-      updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, n=> n.kind!=="leaf"? n as any : ({
+      updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, n=> n.kind!=="leaf"? n : ({
         ...n, 
         contentType:"image", 
         imageProps:{...n.imageProps, url: data.imageURL}
-      })));
+      })) as SplitNode);
       
       toast.success("AI image generated successfully!");
       
@@ -648,7 +648,7 @@ export default function GraphicNovelBuilder(){
                     outline={outline}
                     selectedId={selectedPage === (spreadIndex+idx) ? selectedId : ""}
                     onSelect={(id)=>{ setSelectedPage(spreadIndex+idx); setSelectedId(id); }}
-                    onResize={(id, index, delta)=> updatePage(spreadIndex+idx, prev=>updateNode(prev, id, n=>applyResize(n,index,delta)))}
+                    onResize={(id, index, delta)=> updatePage(spreadIndex+idx, prev=>updateNode(prev, id, n=>applyResize(n,index,delta)) as SplitNode)}
                   />
                 </div>
               </div>
@@ -687,7 +687,7 @@ export default function GraphicNovelBuilder(){
               {selectedNode && selectedNode.kind === "leaf" && (
                 <EnhancedLeafInspector 
                   node={selectedNode} 
-                  onChange={(updater)=>updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, updater))} 
+                  onChange={(updater)=>updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, updater) as SplitNode)}
                   onGenerateText={onGenerateText}
                   aiPrompt={aiPrompt}
                   setAiPrompt={setAiPrompt}
@@ -705,7 +705,7 @@ export default function GraphicNovelBuilder(){
               {selectedNode && selectedNode.kind === "split" && (
                 <SplitInspector 
                   node={selectedNode} 
-                  onChange={(updater)=>updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, updater))} 
+                  onChange={(updater)=>updatePage(selectedPage, prev=>updateNode(prev, selectedNode.id, updater) as SplitNode)} 
                 />
               )}
             </div>
