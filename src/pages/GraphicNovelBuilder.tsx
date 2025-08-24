@@ -235,6 +235,8 @@ const storyPrompts = [
 
 const GraphicNovelBuilder = () => {
   const [pages, setPages] = useState<SplitNode[]>([DEFAULT_PRESET]);
+  const [history, setHistory] = useState<SplitNode[][]>([[DEFAULT_PRESET]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   
   // Character management
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -257,6 +259,9 @@ const GraphicNovelBuilder = () => {
 
   // AI generation settings
   const [aiPrompt, setAiPrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [referenceImageUrl, setReferenceImageUrl] = useState("");
+  const [manualImageUrl, setManualImageUrl] = useState("");
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [outputFormat, setOutputFormat] = useState<string>("png");
   const [safetyTolerance, setSafetyTolerance] = useState<number>(2);
@@ -264,6 +269,39 @@ const GraphicNovelBuilder = () => {
   const [seed, setSeed] = useState<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // History management
+  const saveToHistory = useCallback((newPages: SplitNode[]) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(newPages)));
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, [history, historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+      setPages(history[historyIndex - 1]);
+      toast.success("Undone");
+    }
+  }, [history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+      setPages(history[historyIndex + 1]);
+      toast.success("Redone");
+    }
+  }, [history, historyIndex]);
+
+  const fitToViewport = useCallback(() => {
+    setZoom(0.5);
+    toast.success("Fit to viewport");
+  }, []);
+
+  const exportCanvas = useCallback(() => {
+    toast.info("Export functionality would be implemented here");
+  }, []);
 
   // Character management functions
   const addCharacter = useCallback((characterData: Omit<Character, 'id' | 'createdAt'>) => {
@@ -313,7 +351,11 @@ const GraphicNovelBuilder = () => {
   }, [pages, globalSettings, characters, generatedImages]);
 
   const updatePage = (pageIndex: number, updater: (page: SplitNode) => SplitNode) => {
-    setPages(prev => prev.map((page, i) => i === pageIndex ? updater(page) : page));
+    setPages(prev => {
+      const newPages = prev.map((page, i) => i === pageIndex ? updater(page) : page);
+      saveToHistory(newPages);
+      return newPages;
+    });
   };
 
   const selectedNode = useMemo(() => {
@@ -532,6 +574,22 @@ const GraphicNovelBuilder = () => {
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
+                  <Button onClick={undo} size="sm" variant="outline" disabled={historyIndex <= 0}>
+                    <Undo className="h-4 w-4 mr-1" />
+                    Undo
+                  </Button>
+                  <Button onClick={redo} size="sm" variant="outline" disabled={historyIndex >= history.length - 1}>
+                    <Redo className="h-4 w-4 mr-1" />
+                    Redo
+                  </Button>
+                  <Button onClick={fitToViewport} size="sm" variant="outline">
+                    <Monitor className="h-4 w-4 mr-1" />
+                    Fit View
+                  </Button>
+                  <Button onClick={exportCanvas} size="sm" variant="outline">
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
                 </div>
               </div>
 
@@ -729,6 +787,16 @@ const GraphicNovelBuilder = () => {
                 characters={characters}
                 onGenerateImage={onGenerateImage}
                 isGenerating={isGenerating}
+                manualImageUrl={manualImageUrl}
+                setManualImageUrl={setManualImageUrl}
+                negativePrompt={negativePrompt}
+                setNegativePrompt={setNegativePrompt}
+                referenceImageUrl={referenceImageUrl}
+                setReferenceImageUrl={setReferenceImageUrl}
+                aspectRatio={aspectRatio}
+                setAspectRatio={setAspectRatio}
+                seed={seed}
+                setSeed={setSeed}
               />
             )}
             
@@ -883,6 +951,17 @@ interface EnhancedLeafInspectorProps {
   characters: Character[];
   onGenerateImage: (characterId?: string) => void;
   isGenerating: boolean;
+  // Advanced image controls
+  manualImageUrl: string;
+  setManualImageUrl: (url: string) => void;
+  negativePrompt: string;
+  setNegativePrompt: (prompt: string) => void;
+  referenceImageUrl: string;
+  setReferenceImageUrl: (url: string) => void;
+  aspectRatio: string;
+  setAspectRatio: (ratio: string) => void;
+  seed: number | null;
+  setSeed: (seed: number | null) => void;
 }
 
 const EnhancedLeafInspector: React.FC<EnhancedLeafInspectorProps> = ({
@@ -893,7 +972,17 @@ const EnhancedLeafInspector: React.FC<EnhancedLeafInspectorProps> = ({
   setAiPrompt,
   characters,
   onGenerateImage,
-  isGenerating
+  isGenerating,
+  manualImageUrl,
+  setManualImageUrl,
+  negativePrompt,
+  setNegativePrompt,
+  referenceImageUrl,
+  setReferenceImageUrl,
+  aspectRatio,
+  setAspectRatio,
+  seed,
+  setSeed
 }) => {
   return (
     <div className="space-y-4">
@@ -947,6 +1036,35 @@ const EnhancedLeafInspector: React.FC<EnhancedLeafInspectorProps> = ({
           {node.contentType === "image" && (
             <div className="space-y-4">
               <div className="space-y-2">
+                <Label>Manual Image URL</Label>
+                <Input
+                  value={manualImageUrl}
+                  onChange={(e) => setManualImageUrl(e.target.value)}
+                  placeholder="Paste image URL here..."
+                />
+                <Button 
+                  onClick={() => {
+                    if (manualImageUrl.trim()) {
+                      onChange(n => n.kind === "leaf" ? ({
+                        ...n,
+                        imageProps: { ...n.imageProps, url: manualImageUrl }
+                      }) : n);
+                      setManualImageUrl("");
+                      toast.success("Image URL applied!");
+                    }
+                  }}
+                  disabled={!manualImageUrl.trim()}
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                >
+                  Apply URL
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
                 <Label>AI Image Prompt</Label>
                 <Textarea
                   value={aiPrompt}
@@ -954,6 +1072,53 @@ const EnhancedLeafInspector: React.FC<EnhancedLeafInspectorProps> = ({
                   rows={3}
                   placeholder="Describe the image you want to generate..."
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Negative Prompt (Optional)</Label>
+                <Textarea
+                  value={negativePrompt}
+                  onChange={(e) => setNegativePrompt(e.target.value)}
+                  rows={2}
+                  placeholder="What to avoid in the image..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Reference Image URL (Optional)</Label>
+                <Input
+                  value={referenceImageUrl}
+                  onChange={(e) => setReferenceImageUrl(e.target.value)}
+                  placeholder="Reference image URL..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Aspect Ratio</Label>
+                  <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1:1">Square (1:1)</SelectItem>
+                      <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                      <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                      <SelectItem value="4:3">Standard (4:3)</SelectItem>
+                      <SelectItem value="3:2">Photo (3:2)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Seed (Optional)</Label>
+                  <Input
+                    type="number"
+                    value={seed || ""}
+                    onChange={(e) => setSeed(e.target.value ? parseInt(e.target.value) : null)}
+                    placeholder="Random"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -981,6 +1146,322 @@ const EnhancedLeafInspector: React.FC<EnhancedLeafInspectorProps> = ({
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Typography Controls */}
+      {node.contentType === "text" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Typography</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label>Font Size</Label>
+                <Input
+                  type="number"
+                  value={node.textProps.fontSize}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      textProps: { ...n.textProps, fontSize: parseInt(e.target.value) || 16 }
+                    }) : n)
+                  }
+                  min={8}
+                  max={72}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Line Height</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={node.textProps.lineHeight}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      textProps: { ...n.textProps, lineHeight: parseFloat(e.target.value) || 1.4 }
+                    }) : n)
+                  }
+                  min={0.5}
+                  max={3}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Font Family</Label>
+              <Select
+                value={node.textProps.fontFamily}
+                onValueChange={(value) => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    textProps: { ...n.textProps, fontFamily: value }
+                  }) : n)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                  <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                  <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                  <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                  <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
+                  <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Text Alignment</Label>
+              <Select
+                value={node.textProps.textAlign}
+                onValueChange={(value: "left" | "center" | "right") => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    textProps: { ...n.textProps, textAlign: value }
+                  }) : n)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="center">Center</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={node.textProps.fontWeight === "bold"}
+                  onCheckedChange={(checked) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      textProps: { ...n.textProps, fontWeight: checked ? "bold" : "normal" }
+                    }) : n)
+                  }
+                />
+                <Label>Bold</Label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <Input
+                type="color"
+                value={node.textProps.color}
+                onChange={(e) => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    textProps: { ...n.textProps, color: e.target.value }
+                  }) : n)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Letter Spacing</Label>
+              <Slider
+                value={[node.textProps.letterSpacing]}
+                onValueChange={([value]) => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    textProps: { ...n.textProps, letterSpacing: value }
+                  }) : n)
+                }
+                min={-2}
+                max={5}
+                step={0.1}
+                className="w-full"
+              />
+              <div className="text-xs text-muted-foreground text-center">
+                {node.textProps.letterSpacing}px
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Image Controls */}
+      {node.contentType === "image" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Image Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Object Fit</Label>
+              <Select
+                value={node.imageProps.objectFit}
+                onValueChange={(value: "cover" | "contain" | "fill") => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    imageProps: { ...n.imageProps, objectFit: value }
+                  }) : n)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cover">Cover</SelectItem>
+                  <SelectItem value="contain">Contain</SelectItem>
+                  <SelectItem value="fill">Fill</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Opacity</Label>
+              <Slider
+                value={[node.imageProps.opacity]}
+                onValueChange={([value]) => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    imageProps: { ...n.imageProps, opacity: value }
+                  }) : n)
+                }
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-full"
+              />
+              <div className="text-xs text-muted-foreground text-center">
+                {Math.round(node.imageProps.opacity * 100)}%
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Border Radius</Label>
+              <Slider
+                value={[node.imageProps.borderRadius]}
+                onValueChange={([value]) => 
+                  onChange(n => n.kind === "leaf" ? ({
+                    ...n,
+                    imageProps: { ...n.imageProps, borderRadius: value }
+                  }) : n)
+                }
+                min={0}
+                max={50}
+                step={1}
+                className="w-full"
+              />
+              <div className="text-xs text-muted-foreground text-center">
+                {node.imageProps.borderRadius}px
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Segment Styling */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Segment Styling</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Background Color</Label>
+            <Input
+              type="color"
+              value={node.backgroundProps.color}
+              onChange={(e) => 
+                onChange(n => n.kind === "leaf" ? ({
+                  ...n,
+                  backgroundProps: { ...n.backgroundProps, color: e.target.value }
+                }) : n)
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Background Opacity</Label>
+            <Slider
+              value={[node.backgroundProps.opacity]}
+              onValueChange={([value]) => 
+                onChange(n => n.kind === "leaf" ? ({
+                  ...n,
+                  backgroundProps: { ...n.backgroundProps, opacity: value }
+                }) : n)
+              }
+              min={0}
+              max={1}
+              step={0.01}
+              className="w-full"
+            />
+            <div className="text-xs text-muted-foreground text-center">
+              {Math.round(node.backgroundProps.opacity * 100)}%
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Padding</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Top</Label>
+                <Input
+                  type="number"
+                  value={node.padding.top}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      padding: { ...n.padding, top: parseInt(e.target.value) || 0 }
+                    }) : n)
+                  }
+                  min={0}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Right</Label>
+                <Input
+                  type="number"
+                  value={node.padding.right}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      padding: { ...n.padding, right: parseInt(e.target.value) || 0 }
+                    }) : n)
+                  }
+                  min={0}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bottom</Label>
+                <Input
+                  type="number"
+                  value={node.padding.bottom}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      padding: { ...n.padding, bottom: parseInt(e.target.value) || 0 }
+                    }) : n)
+                  }
+                  min={0}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Left</Label>
+                <Input
+                  type="number"
+                  value={node.padding.left}
+                  onChange={(e) => 
+                    onChange(n => n.kind === "leaf" ? ({
+                      ...n,
+                      padding: { ...n.padding, left: parseInt(e.target.value) || 0 }
+                    }) : n)
+                  }
+                  min={0}
+                />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
