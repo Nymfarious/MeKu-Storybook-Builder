@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -99,7 +101,7 @@ const DEFAULT_LEAF = (): LeafNode => ({
   id: uid(),
   contentType: "text",
   textProps: {
-    text: "Click to edit text...",
+    text: "",
     fontSize: 16,
     color: "#000000",
     fontWeight: "normal",
@@ -126,9 +128,21 @@ const DEFAULT_LEAF = (): LeafNode => ({
   }
 });
 
-const PRESETS: { name: string; root: SplitNode }[] = [
+// Page size definitions (in pixels at 96 DPI)
+const PAGE_SIZES = {
+  'A4': { width: 794, height: 1123, name: 'A4 (210×297mm)' },
+  'US Letter': { width: 816, height: 1056, name: 'US Letter (8.5×11")' },
+  'US Legal': { width: 816, height: 1344, name: 'US Legal (8.5×14")' },
+  'Square': { width: 800, height: 800, name: 'Square (800×800px)' },
+  'Comic': { width: 675, height: 1050, name: 'Comic Book (6.75×10.5")' },
+  'Manga': { width: 480, height: 700, name: 'Manga (B6 format)' }
+};
+
+const PRESETS: { name: string; category: string; root: SplitNode }[] = [
+  // Basic Layouts
   {
     name: "Single Panel",
+    category: "Basic",
     root: {
       kind: "split",
       id: uid(),
@@ -139,6 +153,7 @@ const PRESETS: { name: string; root: SplitNode }[] = [
   },
   {
     name: "Two Columns",
+    category: "Basic",
     root: {
       kind: "split",
       id: uid(),
@@ -149,6 +164,7 @@ const PRESETS: { name: string; root: SplitNode }[] = [
   },
   {
     name: "Three Columns",
+    category: "Basic",
     root: {
       kind: "split",
       id: uid(),
@@ -158,7 +174,30 @@ const PRESETS: { name: string; root: SplitNode }[] = [
     }
   },
   {
+    name: "Two Rows",
+    category: "Basic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.5, 0.5],
+      children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+    }
+  },
+  {
+    name: "Three Rows",
+    category: "Basic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.33, 0.33, 0.34],
+      children: [DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF()]
+    }
+  },
+  {
     name: "Two by Two",
+    category: "Basic",
     root: {
       kind: "split",
       id: uid(),
@@ -178,6 +217,205 @@ const PRESETS: { name: string; root: SplitNode }[] = [
           direction: "horizontal",
           sizes: [0.5, 0.5],
           children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        }
+      ]
+    }
+  },
+  
+  // Comic Layouts
+  {
+    name: "Hero Splash",
+    category: "Comic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "horizontal",
+      sizes: [1],
+      children: [DEFAULT_LEAF()]
+    }
+  },
+  {
+    name: "Classic 6-Panel",
+    category: "Comic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.33, 0.33, 0.34],
+      children: [
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.5, 0.5],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        },
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.5, 0.5],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        },
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.5, 0.5],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        }
+      ]
+    }
+  },
+  {
+    name: "L-Shape Layout",
+    category: "Comic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "horizontal",
+      sizes: [0.6, 0.4],
+      children: [
+        DEFAULT_LEAF(),
+        {
+          kind: "split",
+          id: uid(),
+          direction: "vertical",
+          sizes: [0.5, 0.5],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        }
+      ]
+    }
+  },
+  {
+    name: "Vertical Strip",
+    category: "Comic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.2, 0.2, 0.2, 0.2, 0.2],
+      children: [DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF()]
+    }
+  },
+  {
+    name: "Diagonal Split",
+    category: "Comic", 
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.3, 0.7],
+      children: [
+        DEFAULT_LEAF(),
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.7, 0.3],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        }
+      ]
+    }
+  },
+  {
+    name: "Focus Panel",
+    category: "Comic",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.7, 0.3],
+      children: [
+        DEFAULT_LEAF(),
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.33, 0.33, 0.34],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF()]
+        }
+      ]
+    }
+  },
+
+  // Magazine Layouts
+  {
+    name: "Article Layout",
+    category: "Magazine",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "horizontal",
+      sizes: [0.35, 0.65],
+      children: [
+        DEFAULT_LEAF(), // Image column
+        DEFAULT_LEAF()  // Text column
+      ]
+    }
+  },
+  {
+    name: "Feature Spread",
+    category: "Magazine",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.4, 0.6],
+      children: [
+        DEFAULT_LEAF(), // Large header image
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.5, 0.5],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()] // Two text columns
+        }
+      ]
+    }
+  },
+  {
+    name: "Sidebar Layout",
+    category: "Magazine",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "horizontal",
+      sizes: [0.75, 0.25],
+      children: [
+        {
+          kind: "split",
+          id: uid(),
+          direction: "vertical",
+          sizes: [0.4, 0.6],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF()]
+        },
+        DEFAULT_LEAF() // Sidebar
+      ]
+    }
+  },
+  {
+    name: "Grid Gallery",
+    category: "Magazine",
+    root: {
+      kind: "split",
+      id: uid(),
+      direction: "vertical",
+      sizes: [0.5, 0.5],
+      children: [
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.33, 0.33, 0.34],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF()]
+        },
+        {
+          kind: "split",
+          id: uid(),
+          direction: "horizontal",
+          sizes: [0.33, 0.33, 0.34],
+          children: [DEFAULT_LEAF(), DEFAULT_LEAF(), DEFAULT_LEAF()]
         }
       ]
     }
@@ -254,7 +492,8 @@ const GraphicNovelBuilder = () => {
   const [globalSettings, setGlobalSettings] = useState({
     gutter: 8,
     background: '#ffffff',
-    aspectRatio: '16:9'
+    pageSize: 'A4' as keyof typeof PAGE_SIZES,
+    orientation: 'portrait' as 'portrait' | 'landscape'
   });
 
   // AI generation settings
@@ -329,7 +568,8 @@ const GraphicNovelBuilder = () => {
         setGlobalSettings(data.settings || {
           gutter: 8,
           background: '#ffffff',
-          aspectRatio: '16:9'
+          pageSize: 'A4' as keyof typeof PAGE_SIZES,
+          orientation: 'portrait' as 'portrait' | 'landscape'
         });
         setCharacters(data.characters || []);
         setGeneratedImages(data.generatedImages || []);
@@ -366,10 +606,12 @@ const GraphicNovelBuilder = () => {
   const currentLeft = pages[spreadIndex];
   const currentRight = pages[spreadIndex + 1];
   
-  const { gutter } = globalSettings;
+  const { gutter, pageSize, orientation } = globalSettings;
   const pageGap = 20;
-  const aspect = globalSettings.aspectRatio === '16:9' ? 9/16 : 
-                globalSettings.aspectRatio === '4:3' ? 3/4 : 1;
+  
+  const baseSize = PAGE_SIZES[pageSize];
+  const pageWidth = orientation === 'landscape' ? baseSize.height : baseSize.width;
+  const pageHeight = orientation === 'landscape' ? baseSize.width : baseSize.height;
 
   const canvasBg = "#1a1a1a";
   const pageBg = globalSettings.background;
@@ -533,7 +775,8 @@ const GraphicNovelBuilder = () => {
   };
 
   return (
-    <div className="h-screen flex bg-background">
+    <DndProvider backend={HTML5Backend}>
+      <div className="h-screen flex bg-background">
       {/* Left Sidebar - Document Controls */}
       <div className="w-80 border-r border-border bg-card shadow-card overflow-y-auto">
         <div className="p-6">
@@ -594,22 +837,78 @@ const GraphicNovelBuilder = () => {
               </div>
 
               {/* Layout Presets */}
+              {/* Page Settings */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">Page Settings</h4>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Page Size</Label>
+                    <Select
+                      value={globalSettings.pageSize}
+                      onValueChange={(value: keyof typeof PAGE_SIZES) => 
+                        setGlobalSettings(prev => ({ ...prev, pageSize: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PAGE_SIZES).map(([key, size]) => (
+                          <SelectItem key={key} value={key}>{size.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Orientation</Label>
+                    <Select
+                      value={globalSettings.orientation}
+                      onValueChange={(value: 'portrait' | 'landscape') => 
+                        setGlobalSettings(prev => ({ ...prev, orientation: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="portrait">Portrait</SelectItem>
+                        <SelectItem value="landscape">Landscape</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Layout Presets */}
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-3">Layout Presets</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {PRESETS.map((preset, i) => (
-                    <Button
-                      key={i}
-                      onClick={() => applyPreset(preset.root)}
-                      variant="outline"
-                      size="sm"
-                      className="h-auto p-2 text-xs"
-                    >
-                      <LayoutGrid className="h-3 w-3 mr-1" />
-                      {preset.name}
-                    </Button>
+                <Tabs defaultValue="Basic" className="space-y-2">
+                  <TabsList className="grid w-full grid-cols-3 text-xs">
+                    <TabsTrigger value="Basic">Basic</TabsTrigger>
+                    <TabsTrigger value="Comic">Comic</TabsTrigger>
+                    <TabsTrigger value="Magazine">Mag</TabsTrigger>
+                  </TabsList>
+                  
+                  {['Basic', 'Comic', 'Magazine'].map(category => (
+                    <TabsContent key={category} value={category} className="mt-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {PRESETS.filter(preset => preset.category === category).map((preset, i) => (
+                          <Button
+                            key={i}
+                            onClick={() => applyPreset(preset.root)}
+                            variant="outline"
+                            size="sm"
+                            className="h-auto p-2 text-xs"
+                          >
+                            <LayoutGrid className="h-3 w-3 mr-1" />
+                            {preset.name}
+                          </Button>
+                        ))}
+                      </div>
+                    </TabsContent>
                   ))}
-                </div>
+                </Tabs>
               </div>
 
               {/* View Controls */}
@@ -720,15 +1019,15 @@ const GraphicNovelBuilder = () => {
           }}
         >
           {[currentLeft, currentRight].filter(Boolean).map((pageRoot, idx) => (
-            <div 
+              <div 
               key={idx} 
               className="relative" 
               style={{ 
-                width: 900, 
-                height: 900 * aspect, 
+                width: pageWidth, 
+                height: pageHeight, 
                 background: pageBg, 
                 borderRadius: pageRadius 
-              }} 
+              }}
               onClick={() => { 
                 const i = spreadIndex + idx; 
                 setSelectedPage(i); 
@@ -809,7 +1108,8 @@ const GraphicNovelBuilder = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </DndProvider>
   );
 };
 
@@ -914,7 +1214,7 @@ const LeafView: React.FC<LeafViewProps> = ({ node, outline, isSelected, onSelect
           }}
         >
           <div className="whitespace-pre-wrap break-words">
-            {textProps.text || "Click to edit text..."}
+            {textProps.text || <span className="text-gray-400 italic">Click to edit text...</span>}
           </div>
         </div>
       ) : (
