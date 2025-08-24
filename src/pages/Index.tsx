@@ -205,6 +205,11 @@ const Index = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" className="text-lg px-8">
+                <a href="/graphic-novel-builder">
+                  📚 Try Graphic Novel Builder
+                </a>
+              </Button>
               <Button variant="outline" size="lg" className="text-lg px-8">
                 <Github className="h-5 w-5" />
                 View Documentation

@@ -1,1 +1,4 @@
 project_id = "lwprnaxdtfzakauznwhm"
+
+[functions.generate-image-novel]
+verify_jwt = false
