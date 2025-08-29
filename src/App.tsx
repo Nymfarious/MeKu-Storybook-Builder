@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -29,37 +30,51 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <Index />
+                <Layout>
+                  <Index />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/graphic-novel-builder" element={
               <ProtectedRoute>
-                <GraphicNovelBuilder />
+                <Layout>
+                  <GraphicNovelBuilder />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/assets" element={
               <ProtectedRoute>
-                <Assets />
+                <Layout>
+                  <Assets />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
               <ProtectedRoute>
-                <Settings />
+                <Layout>
+                  <Settings />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/props" element={
               <ProtectedRoute>
-                <Props />
+                <Layout>
+                  <Props />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/saved-pages" element={
               <ProtectedRoute>
-                <SavedPages />
+                <Layout>
+                  <SavedPages />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/storybook/:id" element={
               <ProtectedRoute>
-                <Storybook />
+                <Layout>
+                  <Storybook />
+                </Layout>
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

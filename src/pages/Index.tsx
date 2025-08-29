@@ -1,19 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Users, Wand2, Images, Github, ExternalLink, Zap, History, Settings, Package } from 'lucide-react';
-import { ImageGenerator } from '@/components/ImageGenerator';
-import { Gallery } from '@/components/Gallery';
-import { BatchGenerator } from '@/components/BatchGenerator';
-import { ImageHistory } from '@/components/ImageHistory';
-import UserMenu from '@/components/UserMenu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparkles, Palette, Users, BookOpen, ArrowRight, Zap, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import heroImage from '@/assets/hero-image.jpg';
 import { Character, GeneratedImage, GenerationJob } from '@/types';
 import { ReplicateService } from '@/services/replicate';
-import { GenerationQueue } from '@/components/GenerationQueue';
-import { toast } from 'sonner';
-import heroImage from '@/assets/hero-image.jpg';
-import { Link } from 'react-router-dom';
 
 const Index = () => {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -21,7 +13,7 @@ const Index = () => {
   const [generationJobs, setGenerationJobs] = useState<GenerationJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const replicateService = useRef<ReplicateService>(new ReplicateService());
-  // Remove character management functions as they're now in Assets page
+
   const handleGenerate = useCallback(async (jobData: Omit<GenerationJob, 'id' | 'createdAt' | 'status'>) => {
     setIsGenerating(true);
     const character = jobData.characterId ? characters.find(c => c.id === jobData.characterId) : undefined;
@@ -112,6 +104,7 @@ const Index = () => {
       setIsGenerating(false);
     }
   }, [characters]);
+
   const handleCancelJob = useCallback(async (jobId: string) => {
     const job = generationJobs.find(j => j.id === jobId);
     if (job?.predictionId) {
@@ -130,155 +123,168 @@ const Index = () => {
       status: 'canceled' as const
     } : img));
   }, [generationJobs]);
+
   const handleRetryJob = useCallback((jobId: string) => {
     const job = generationJobs.find(j => j.id === jobId);
     if (job) {
       handleGenerate(job);
     }
   }, [generationJobs, handleGenerate]);
+
   const handleRemoveJob = useCallback((jobId: string) => {
     setGenerationJobs(prev => prev.filter(j => j.id !== jobId));
   }, []);
-  return <div className="min-h-screen bg-gradient-hero">
+
+  const features = [
+    {
+      icon: Palette,
+      title: 'Graphic Novel Builder',
+      description: 'Create stunning comic book pages with AI-generated panels, characters, and layouts.',
+      href: '/graphic-novel-builder',
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50 dark:bg-purple-950/20'
+    },
+    {
+      icon: Users,
+      title: 'Character Assets',
+      description: 'Manage your character library with reference images and consistent AI generation.',
+      href: '/assets',
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/20'
+    },
+    {
+      icon: BookOpen,
+      title: 'Digital Storybooks',
+      description: 'View and organize your completed graphic novel pages in beautiful collections.',
+      href: '/saved-pages',
+      color: 'text-green-500',
+      bgColor: 'bg-green-50 dark:bg-green-950/20'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImage} alt="AI Character Creation" className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-hero opacity-80" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="absolute inset-0 opacity-5">
+          <img 
+            src={heroImage} 
+            alt="AI Character Creation" 
+            className="w-full h-full object-cover"
+          />
         </div>
         
-        <div className="relative container mx-auto px-4 py-20 text-center">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {/* User Menu */}
-            <div className="absolute top-4 right-4">
-              <UserMenu />
-            </div>
-            
+        <div className="relative container mx-auto px-4 py-24">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-6xl font-bold text-foreground">
-                AI Character{' '}
+              <div className="inline-flex items-center rounded-full border px-4 py-2 text-sm bg-secondary/50">
+                <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                Powered by Flux Kontext Pro AI
+              </div>
+              
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+                Create Amazing{' '}
                 <span className="bg-gradient-primary bg-clip-text text-transparent">
-                  Image Generator
+                  AI Art
                 </span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Create stunning AI-generated artwork of your characters using Replicate's Flux Kontext Pro. 
-                Upload reference images and let AI bring your imagination to life with advanced control options.
+              
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Generate stunning character artwork, build graphic novels, and bring your creative visions to life with advanced AI technology.
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-lg px-8">
+              <Button asChild size="lg" className="text-lg px-8 h-12">
                 <Link to="/graphic-novel-builder">
-                  📚 Try Graphic Novel Builder
+                  <Palette className="h-5 w-5 mr-2" />
+                  Start Creating
+                  <ArrowRight className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg px-8">
+              <Button asChild size="lg" variant="outline" className="text-lg px-8 h-12">
                 <Link to="/assets">
                   <Users className="h-5 w-5 mr-2" />
                   Manage Assets
                 </Link>
               </Button>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-              <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
-                <Link to="/assets">
-                  <Users className="h-6 w-6" />
-                  <span className="font-medium">Characters</span>
-                  <span className="text-xs text-muted-foreground">Manage your character library</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
-                <Link to="/saved-pages">
-                  <Package className="h-6 w-6" />
-                  <span className="font-medium">Storybooks</span>
-                  <span className="text-xs text-muted-foreground">Digital storybook gallery</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
-                <Link to="/settings">
-                  <Settings className="h-6 w-6" />
-                  <span className="font-medium">Settings</span>
-                  <span className="text-xs text-muted-foreground">Configure preferences</span>
-                </Link>
-              </Button>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Main Application */}
-      <section className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="generate" className="space-y-8">
-          <div className="flex justify-center">
-            <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-card border-border shadow-card">
-              <TabsTrigger value="generate" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Wand2 className="h-4 w-4 mr-2" />
-                Generate
-              </TabsTrigger>
-              <TabsTrigger value="batch" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Zap className="h-4 w-4 mr-2" />
-                Batch
-              </TabsTrigger>
-              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <History className="h-4 w-4 mr-2" />
-                History
-              </TabsTrigger>
-              <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Images className="h-4 w-4 mr-2" />
-                Gallery
-              </TabsTrigger>
-            </TabsList>
+      {/* Features Section */}
+      <section className="py-24 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Everything You Need to Create
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Powerful tools designed for artists, writers, and creators who want to bring their stories to life.
+            </p>
           </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-border">
+                  <CardHeader>
+                    <div className={`w-12 h-12 rounded-lg ${feature.bgColor} flex items-center justify-center mb-4`}>
+                      <Icon className={`h-6 w-6 ${feature.color}`} />
+                    </div>
+                    <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                      {feature.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground">
+                      {feature.description}
+                    </p>
+                    <Button asChild variant="ghost" className="p-0 h-auto font-medium">
+                      <Link to={feature.href} className="flex items-center">
+                        Get Started
+                        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-          <TabsContent value="generate" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <ImageGenerator characters={characters} onGenerate={handleGenerate} isGenerating={isGenerating} />
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                    Generation Queue
-                  </h2>
-                  <p className="text-muted-foreground">Track your image generation progress</p>
-                </div>
-                <GenerationQueue jobs={generationJobs} onCancelJob={handleCancelJob} onRetryJob={handleRetryJob} onRemoveJob={handleRemoveJob} />
+      {/* Stats Section */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-primary mb-2">AI</div>
+              <div className="text-sm text-muted-foreground">Powered Generation</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-primary mb-2">∞</div>
+              <div className="text-sm text-muted-foreground">Creative Possibilities</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-primary mb-2">
+                <Zap className="h-8 w-8 inline" />
               </div>
+              <div className="text-sm text-muted-foreground">Fast Generation</div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="batch" className="space-y-6">
-            <BatchGenerator characters={characters} onGenerate={handleGenerate} isGenerating={isGenerating} />
-          </TabsContent>
-
-          <TabsContent value="history" className="space-y-6">
-            <ImageHistory images={generatedImages} characters={characters} />
-          </TabsContent>
-
-          <TabsContent value="gallery" className="space-y-6">
-            <Gallery images={generatedImages} characters={characters} />
-          </TabsContent>
-        </Tabs>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              Built with React, TypeScript, and Tailwind CSS
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Powered by Replicate Flux Kontext Pro</span>
-              <span>•</span>
-              <a href="https://replicate.com/black-forest-labs/flux-kontext-pro" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                API Documentation
-              </a>
+            <div>
+              <div className="text-3xl font-bold text-primary mb-2">
+                <Star className="h-8 w-8 inline" />
+              </div>
+              <div className="text-sm text-muted-foreground">Professional Quality</div>
             </div>
           </div>
         </div>
-      </footer>
-
-    </div>;
+      </section>
+    </div>
+  );
 };
+
 export default Index;
