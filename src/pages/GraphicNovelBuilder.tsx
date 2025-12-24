@@ -69,7 +69,7 @@ const GraphicNovelBuilder = () => {
   const [showRight, setShowRight] = useState(true);
   const [globalSettings, setGlobalSettings] = useState({
     gutter: 8,
-    background: '#ffffff',
+    background: '#faf9f6',
     pageSize: 'A4' as PageSizeKey,
     orientation: 'portrait' as 'portrait' | 'landscape'
   });
@@ -671,7 +671,7 @@ const GraphicNovelBuilder = () => {
                 <div className="p-4 space-y-6">
                   {/* Header with User Menu */}
                   <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">GN Builder</h2>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent">Storybook Builder</h2>
                     <UserMenu />
                   </div>
                 
@@ -958,8 +958,21 @@ const GraphicNovelBuilder = () => {
         {/* Canvas */}
         <div 
           ref={containerRef} 
-          className="min-h-0 overflow-hidden relative flex items-center justify-center flex-1" 
-          style={{ background: canvasBg }}
+          className="min-h-0 overflow-auto relative flex items-center justify-center flex-1" 
+          style={{ 
+            background: `
+              radial-gradient(circle at 50% 50%, rgba(251, 146, 60, 0.03) 0%, transparent 50%),
+              linear-gradient(to bottom, #0f0f0f 0%, #1a1a1a 100%)
+            `,
+            backgroundAttachment: 'fixed'
+          }}
+          onWheel={(e) => {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+              const delta = e.deltaY > 0 ? 0.9 : 1.1;
+              setZoom(z => Math.min(2, Math.max(0.1, z * delta)));
+            }
+          }}
         >
           <div 
             className="flex items-stretch shadow-2xl" 

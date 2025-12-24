@@ -57,7 +57,7 @@ export const LeafView: React.FC<LeafViewProps> = ({ node, outline, isSelected, o
           }}
         >
           <div className="whitespace-pre-wrap break-words">
-            {textProps.text || <span className="text-gray-400 italic">Click to edit text...</span>}
+            {textProps.text || <span className="text-muted-foreground/60 italic text-sm">Double-click to add your story...</span>}
           </div>
         </div>
       ) : (
@@ -74,8 +74,9 @@ export const LeafView: React.FC<LeafViewProps> = ({ node, outline, isSelected, o
               }}
             />
           ) : (
-            <div className="h-full w-full bg-gray-100 flex items-center justify-center text-gray-400">
+            <div className="h-full w-full bg-gradient-to-br from-muted/50 to-muted flex flex-col items-center justify-center text-muted-foreground/60 gap-2">
               <Image className="h-8 w-8" />
+              <span className="text-xs">Drop image here</span>
             </div>
           )}
         </div>

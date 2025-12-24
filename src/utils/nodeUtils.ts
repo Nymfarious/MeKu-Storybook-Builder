@@ -14,11 +14,11 @@ export const DEFAULT_LEAF = (): LeafNode => ({
   textProps: {
     text: "",
     fontSize: 16,
-    color: "#000000",
+    color: "#374151",
     fontWeight: "normal",
     textAlign: "left",
-    fontFamily: "Arial, sans-serif",
-    lineHeight: 1.4,
+    fontFamily: "Georgia, serif",
+    lineHeight: 1.6,
     letterSpacing: 0,
     italic: false,
     underline: false,
@@ -35,17 +35,17 @@ export const DEFAULT_LEAF = (): LeafNode => ({
     url: "",
     objectFit: "cover",
     opacity: 1,
-    borderRadius: 0,
+    borderRadius: 4,
   },
   backgroundProps: {
-    color: "#ffffff",
+    color: "#faf9f6",
     opacity: 1,
   },
   padding: {
-    top: 12,
-    right: 12,
-    bottom: 12,
-    left: 12,
+    top: 16,
+    right: 16,
+    bottom: 16,
+    left: 16,
   }
 });
 
