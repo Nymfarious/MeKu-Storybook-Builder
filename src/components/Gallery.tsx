@@ -175,7 +175,7 @@ export const Gallery: React.FC<GalleryProps> = ({ images, characters }) => {
                   </Badge>
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {image.createdAt.toLocaleDateString()}
+                    {new Date(image.createdAt).toLocaleDateString()}
                   </div>
                 </div>
 
