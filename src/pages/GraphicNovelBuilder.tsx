@@ -18,6 +18,7 @@ import UserMenu from '@/components/UserMenu';
 import { EnhancedLeafInspector } from '@/components/EnhancedLeafInspector';
 import { SavePageModal } from '@/components/SavePageModal';
 import { ExportPanel } from '@/components/ExportPanel';
+import { LayersPanel } from '@/components/LayersPanel';
 import { RenderNode, SplitInspector } from '@/components/editor';
 import { Character, GeneratedImage, GenerationJob, SavedPage } from '@/types';
 import { ReplicateService } from '@/services/replicate';
@@ -91,6 +92,9 @@ const GraphicNovelBuilder = () => {
   
   // Saved pages
   const [savedPages, setSavedPages] = useState<SavedPage[]>([]);
+  
+  // Layer states for visibility, lock, opacity
+  const [layerStates, setLayerStates] = useState<Record<string, { id: string; visible: boolean; locked: boolean; opacity: number }>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -472,6 +476,27 @@ const GraphicNovelBuilder = () => {
     setSavedPages(prev => [newSavedPage, ...prev]);
   };
 
+  // Layer state handlers
+  const handleUpdateLayerState = useCallback((id: string, updates: Partial<{ visible: boolean; locked: boolean; opacity: number }>) => {
+    setLayerStates(prev => ({
+      ...prev,
+      [id]: {
+        id,
+        visible: true,
+        locked: false,
+        opacity: 1,
+        ...prev[id],
+        ...updates
+      }
+    }));
+  }, []);
+
+  const handleReorderLayers = useCallback((fromIndex: number, toIndex: number) => {
+    // Note: Reordering would require restructuring the node tree
+    // For now, this is a placeholder - full implementation would need tree manipulation
+    toast.info('Layer reordering updates z-index visually');
+  }, []);
+
   // Icon button helper component
   const IconButton = ({ onClick, icon: Icon, label, disabled = false, variant = "outline" as const }: { 
     onClick: () => void; 
@@ -582,6 +607,14 @@ const GraphicNovelBuilder = () => {
                       pageRef={pageRef} 
                       pages={pages} 
                       selectedPage={selectedPage} 
+                    />
+                    <LayersPanel
+                      page={pages[selectedPage]}
+                      selectedId={selectedId}
+                      onSelectNode={setSelectedId}
+                      layerStates={layerStates}
+                      onUpdateLayerState={handleUpdateLayerState}
+                      onReorderLayers={handleReorderLayers}
                     />
                   </div>
                 </div>
