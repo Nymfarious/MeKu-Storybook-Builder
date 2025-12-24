@@ -19,6 +19,8 @@ import { EnhancedLeafInspector } from '@/components/EnhancedLeafInspector';
 import { SavePageModal } from '@/components/SavePageModal';
 import { ExportPanel } from '@/components/ExportPanel';
 import { LayersPanel } from '@/components/LayersPanel';
+import { GridSettingsPanel, GridSettings } from '@/components/GridSettingsPanel';
+import { RecentProjectsPanel, RecentProject } from '@/components/RecentProjectsPanel';
 import { RenderNode, SplitInspector } from '@/components/editor';
 import { Character, GeneratedImage, GenerationJob, SavedPage } from '@/types';
 import { ReplicateService } from '@/services/replicate';
@@ -95,6 +97,20 @@ const GraphicNovelBuilder = () => {
   
   // Layer states for visibility, lock, opacity
   const [layerStates, setLayerStates] = useState<Record<string, { id: string; visible: boolean; locked: boolean; opacity: number }>>({});
+
+  // Grid settings
+  const [gridSettings, setGridSettings] = useState<GridSettings>({
+    show: false,
+    size: 20,
+    color: '#3b82f6',
+    opacity: 0.3,
+    snap: false
+  });
+
+  // Recent projects
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [projectName, setProjectName] = useState('Untitled Project');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -180,6 +196,7 @@ const GraphicNovelBuilder = () => {
 
   // Load from localStorage on mount
   useEffect(() => {
+    // Load current project
     const saved = localStorage.getItem('graphic-novel-builder');
     if (saved) {
       try {
@@ -195,23 +212,113 @@ const GraphicNovelBuilder = () => {
         setCharacters(data.characters || []);
         setGeneratedImages(data.generatedImages || []);
         setSavedPages(data.savedPages || []);
+        setProjectName(data.projectName || 'Untitled Project');
+        if (data.gridSettings) setGridSettings(data.gridSettings);
       } catch (error) {
         console.error('Error loading saved data:', error);
       }
     }
+
+    // Load recent projects list
+    const recentList = localStorage.getItem('gn-recent-projects');
+    if (recentList) {
+      try {
+        setRecentProjects(JSON.parse(recentList));
+      } catch (error) {
+        console.error('Error loading recent projects:', error);
+      }
+    }
   }, []);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
+  // Save current project to localStorage
+  const saveProject = useCallback(() => {
+    const projectId = localStorage.getItem('gn-current-project-id') || crypto.randomUUID();
+    localStorage.setItem('gn-current-project-id', projectId);
+
     const data = {
+      id: projectId,
+      projectName,
       pages,
       settings: globalSettings,
       characters,
       generatedImages,
-      savedPages
+      savedPages,
+      gridSettings,
+      lastModified: new Date().toISOString()
     };
     localStorage.setItem('graphic-novel-builder', JSON.stringify(data));
-  }, [pages, globalSettings, characters, generatedImages, savedPages]);
+    setLastSaved(new Date());
+
+    // Update recent projects list
+    setRecentProjects(prev => {
+      const existing = prev.filter(p => p.id !== projectId);
+      const updated: RecentProject[] = [
+        {
+          id: projectId,
+          name: projectName,
+          lastModified: new Date().toISOString(),
+          pageCount: pages.length
+        },
+        ...existing
+      ].slice(0, 5); // Keep only last 5 projects
+      localStorage.setItem('gn-recent-projects', JSON.stringify(updated));
+      return updated;
+    });
+  }, [pages, globalSettings, characters, generatedImages, savedPages, gridSettings, projectName]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      saveProject();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [saveProject]);
+
+  // Save on data changes (debounced by auto-save)
+  useEffect(() => {
+    const data = {
+      projectName,
+      pages,
+      settings: globalSettings,
+      characters,
+      generatedImages,
+      savedPages,
+      gridSettings
+    };
+    localStorage.setItem('graphic-novel-builder', JSON.stringify(data));
+  }, [pages, globalSettings, characters, generatedImages, savedPages, gridSettings, projectName]);
+
+  // Load a recent project
+  const handleLoadRecentProject = useCallback((projectId: string) => {
+    const projectData = localStorage.getItem(`gn-project-${projectId}`);
+    if (projectData) {
+      try {
+        const data = JSON.parse(projectData);
+        setPages(data.pages || [getDefaultPreset()]);
+        setGlobalSettings(data.settings || globalSettings);
+        setCharacters(data.characters || []);
+        setGeneratedImages(data.generatedImages || []);
+        setSavedPages(data.savedPages || []);
+        setProjectName(data.projectName || 'Untitled Project');
+        if (data.gridSettings) setGridSettings(data.gridSettings);
+        localStorage.setItem('gn-current-project-id', projectId);
+      } catch (error) {
+        console.error('Error loading project:', error);
+        toast.error('Failed to load project');
+      }
+    }
+  }, [globalSettings]);
+
+  // Delete a recent project
+  const handleDeleteRecentProject = useCallback((projectId: string) => {
+    localStorage.removeItem(`gn-project-${projectId}`);
+    setRecentProjects(prev => {
+      const updated = prev.filter(p => p.id !== projectId);
+      localStorage.setItem('gn-recent-projects', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const updatePage = (pageIndex: number, updater: (page: SplitNode) => SplitNode) => {
     setPages(prev => {
@@ -616,7 +723,21 @@ const GraphicNovelBuilder = () => {
                       onUpdateLayerState={handleUpdateLayerState}
                       onReorderLayers={handleReorderLayers}
                     />
+                    <GridSettingsPanel
+                      settings={gridSettings}
+                      onSettingsChange={setGridSettings}
+                    />
+                    <RecentProjectsPanel
+                      recentProjects={recentProjects}
+                      onLoadProject={handleLoadRecentProject}
+                      onDeleteProject={handleDeleteRecentProject}
+                    />
                   </div>
+                  {lastSaved && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Last saved: {lastSaved.toLocaleTimeString()}
+                    </p>
+                  )}
                 </div>
 
                 {/* Page Settings */}
@@ -873,6 +994,20 @@ const GraphicNovelBuilder = () => {
                     onSelect={(id) => { setSelectedPage(spreadIndex + idx); setSelectedId(id); }}
                     onResize={(id, index, delta) => updatePage(spreadIndex + idx, prev => updateNode(prev, id, n => applyResize(n, index, delta)) as SplitNode)}
                   />
+                  {/* Grid Overlay */}
+                  {gridSettings.show && (
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        backgroundImage: `
+                          linear-gradient(${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px),
+                          linear-gradient(90deg, ${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px)
+                        `,
+                        backgroundSize: `${gridSettings.size}px ${gridSettings.size}px`,
+                        borderRadius: pageRadius
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             ))}
