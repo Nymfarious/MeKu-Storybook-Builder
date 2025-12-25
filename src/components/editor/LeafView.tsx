@@ -16,7 +16,7 @@ export const LeafView: React.FC<LeafViewProps> = ({ node, outline, isSelected, o
     <div
       className={`
         h-full w-full cursor-pointer transition-all duration-200
-        ${outline ? 'border-2 border-dashed border-gray-300' : ''}
+        ${outline ? 'border-2 border-dashed border-primary/60 shadow-[0_0_8px_rgba(var(--primary),0.3)]' : ''}
         ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
       `}
       style={{
@@ -57,7 +57,7 @@ export const LeafView: React.FC<LeafViewProps> = ({ node, outline, isSelected, o
           }}
         >
           <div className="whitespace-pre-wrap break-words">
-            {textProps.text || <span className="text-muted-foreground/60 italic text-sm">Double-click to add your story...</span>}
+            {textProps.text || <span className="text-muted-foreground italic text-base font-medium">Double-click to add to your story...</span>}
           </div>
         </div>
       ) : (

@@ -181,7 +181,7 @@ const createPresets = (): LayoutPreset[] => [
     }
   },
   {
-    name: "Diagonal Split",
+    name: "Fi Split",
     category: "Comic", 
     root: {
       kind: "split",

@@ -4,9 +4,7 @@ import { SplitNode } from '@/types/nodes';
 import { GridSettings } from '@/components/GridSettingsPanel';
 
 interface CanvasAreaProps {
-  currentLeft: SplitNode | undefined;
-  currentRight: SplitNode | undefined;
-  spreadIndex: number;
+  currentPage: SplitNode | undefined;
   selectedPage: number;
   selectedId: string;
   zoom: number;
@@ -16,7 +14,6 @@ interface CanvasAreaProps {
   pageHeight: number;
   pageBg: string;
   pageRadius: number;
-  pageGap: number;
   gridSettings: GridSettings;
   onZoomChange: (zoom: number) => void;
   onSelectPage: (index: number) => void;
@@ -25,9 +22,7 @@ interface CanvasAreaProps {
 }
 
 export const CanvasArea = forwardRef<HTMLDivElement, CanvasAreaProps>(({
-  currentLeft,
-  currentRight,
-  spreadIndex,
+  currentPage,
   selectedPage,
   selectedId,
   zoom,
@@ -37,7 +32,6 @@ export const CanvasArea = forwardRef<HTMLDivElement, CanvasAreaProps>(({
   pageHeight,
   pageBg,
   pageRadius,
-  pageGap,
   gridSettings,
   onZoomChange,
   onSelectPage,
@@ -50,9 +44,11 @@ export const CanvasArea = forwardRef<HTMLDivElement, CanvasAreaProps>(({
       style={{ 
         background: `
           radial-gradient(circle at 50% 50%, rgba(251, 146, 60, 0.03) 0%, transparent 50%),
-          linear-gradient(to bottom, #0f0f0f 0%, #1a1a1a 100%)
+          linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--muted)) 100%)
         `,
-        backgroundAttachment: 'fixed'
+        backgroundAttachment: 'fixed',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'hsl(var(--muted-foreground) / 0.3) transparent'
       }}
       onWheel={(e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -62,53 +58,68 @@ export const CanvasArea = forwardRef<HTMLDivElement, CanvasAreaProps>(({
         }
       }}
     >
+      {/* Workspace boundary outline */}
       <div 
-        className="flex items-stretch shadow-2xl" 
-        style={{ 
-          gap: `${pageGap}px`,
-          transform: `scale(${zoom})`,
-          transformOrigin: "center"
+        className="relative p-12"
+        style={{
+          minWidth: 'fit-content',
+          minHeight: 'fit-content'
         }}
       >
-        {[currentLeft, currentRight].filter(Boolean).map((pageRoot, idx) => (
+        {/* Workspace border */}
+        <div 
+          className="absolute inset-4 border-2 border-dashed border-muted-foreground/20 rounded-xl pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+        
+        {/* Page container */}
+        {currentPage && (
           <div 
-            key={idx} 
-            ref={selectedPage === (spreadIndex + idx) ? pageRef as React.RefObject<HTMLDivElement> : undefined}
-            className="relative" 
+            className="relative shadow-2xl" 
             style={{ 
-              width: pageWidth, 
-              height: pageHeight, 
-              background: pageBg, 
-              borderRadius: pageRadius 
+              transform: `scale(${zoom})`,
+              transformOrigin: "center",
+              zIndex: 1
             }}
-            onClick={() => onSelectPage(spreadIndex + idx)}
           >
-            <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: pageRadius }}>
-              <RenderNode
-                node={pageRoot as SplitNode}
-                gutter={gutter}
-                outline={outline}
-                selectedId={selectedPage === (spreadIndex + idx) ? selectedId : ""}
-                onSelect={(id) => { onSelectPage(spreadIndex + idx); onSelectId(id); }}
-                onResize={(id, index, delta) => onResize(spreadIndex + idx, id, index, delta)}
-              />
-              {/* Grid Overlay */}
-              {gridSettings.show && (
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px),
-                      linear-gradient(90deg, ${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px)
-                    `,
-                    backgroundSize: `${gridSettings.size}px ${gridSettings.size}px`,
-                    borderRadius: pageRadius
-                  }}
+            <div 
+              ref={pageRef as React.RefObject<HTMLDivElement>}
+              className="relative shadow-lg" 
+              style={{ 
+                width: pageWidth, 
+                height: pageHeight, 
+                background: pageBg, 
+                borderRadius: pageRadius 
+              }}
+              onClick={() => onSelectPage(selectedPage)}
+            >
+              <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: pageRadius }}>
+                <RenderNode
+                  node={currentPage}
+                  gutter={gutter}
+                  outline={outline}
+                  selectedId={selectedId}
+                  onSelect={(id) => { onSelectId(id); }}
+                  onResize={(id, idx, delta) => onResize(selectedPage, id, idx, delta)}
                 />
-              )}
+                {/* Grid Overlay */}
+                {gridSettings.show && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage: `
+                        linear-gradient(${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px),
+                        linear-gradient(90deg, ${gridSettings.color}${Math.round(gridSettings.opacity * 255).toString(16).padStart(2, '0')} 1px, transparent 1px)
+                      `,
+                      backgroundSize: `${gridSettings.size}px ${gridSettings.size}px`,
+                      borderRadius: pageRadius
+                    }}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

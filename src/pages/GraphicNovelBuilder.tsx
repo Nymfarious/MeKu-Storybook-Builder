@@ -48,8 +48,7 @@ const GraphicNovelBuilder = () => {
 
   const [selectedPage, setSelectedPage] = useState(0);
   const [selectedId, setSelectedId] = useState("");
-  const [spreadIndex, setSpreadIndex] = useState(0);
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(0.62); // Default to fit portrait pages well
   const [outline, setOutline] = useState(false);
   const [globalSettings, setGlobalSettings] = useState({
     gutter: 8,
@@ -369,9 +368,8 @@ const GraphicNovelBuilder = () => {
     }
   };
 
-  // Computed values
-  const currentLeft = pages[spreadIndex];
-  const currentRight = pages[spreadIndex + 1];
+  // Computed values - single page view (no spread)
+  const currentPage = pages[selectedPage];
   const { gutter, pageSize, orientation } = globalSettings;
   const safePageSize = pageSize && PAGE_SIZES[pageSize] ? pageSize : 'A4';
   const baseSize = PAGE_SIZES[safePageSize];
@@ -411,11 +409,11 @@ const GraphicNovelBuilder = () => {
               <ResizablePanel defaultSize={50}>
                 <CanvasArea
                   ref={pageRef}
-                  currentLeft={currentLeft} currentRight={currentRight}
-                  spreadIndex={spreadIndex} selectedPage={selectedPage} selectedId={selectedId}
+                  currentPage={currentPage}
+                  selectedPage={selectedPage} selectedId={selectedId}
                   zoom={zoom} gutter={gutter} outline={outline}
                   pageWidth={pageWidth} pageHeight={pageHeight} pageBg={globalSettings.background}
-                  pageRadius={8} pageGap={20} gridSettings={gridSettings}
+                  pageRadius={8} gridSettings={gridSettings}
                   onZoomChange={setZoom} onSelectPage={setSelectedPage} onSelectId={setSelectedId}
                   onResize={(pageIdx, id, index, delta) => updatePage(pageIdx, prev => updateNode(prev, id, n => applyResize(n, index, delta)) as SplitNode)}
                 />
@@ -443,7 +441,8 @@ const GraphicNovelBuilder = () => {
           </div>
           <PageThumbnailTray
             pages={pages} pageInfos={pageInfos} selectedPage={selectedPage}
-            onSelectPage={(i) => { setSelectedPage(i); setSpreadIndex(i % 2 === 0 ? i : i - 1); setSelectedId(""); }}
+            orientation={globalSettings.orientation}
+            onSelectPage={(i) => { setSelectedPage(i); setSelectedId(""); }}
             onAddPage={addPage} onDeletePage={deletePage} onDuplicatePage={duplicatePage}
             onRenamePage={renamePage} onToggleHidden={togglePageHidden} onBulkRename={bulkRenamePage}
           />

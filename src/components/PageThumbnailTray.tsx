@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,6 +39,7 @@ interface PageThumbnailTrayProps {
   pages: SplitNode[];
   pageInfos: PageInfo[];
   selectedPage: number;
+  orientation?: 'portrait' | 'landscape';
   onSelectPage: (index: number) => void;
   onAddPage: () => void;
   onDeletePage: (index: number) => void;
@@ -53,6 +53,7 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
   pages,
   pageInfos,
   selectedPage,
+  orientation = 'portrait',
   onSelectPage,
   onAddPage,
   onDeletePage,
@@ -66,6 +67,10 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
   const [editName, setEditName] = useState('');
   const [showBulkRename, setShowBulkRename] = useState(false);
   const [bulkStartNumber, setBulkStartNumber] = useState(1);
+
+  // Thumbnail aspect ratio based on orientation
+  const aspectRatio = orientation === 'portrait' ? '0.707' : '1.414';
+  const thumbWidth = orientation === 'portrait' ? 'w-14' : 'w-20';
 
   const handleStartRename = (index: number) => {
     setEditingIndex(index);
@@ -97,6 +102,33 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
     }
   };
 
+  const renderStructurePreview = (node: SplitNode | { kind: 'leaf' }): React.ReactNode => {
+    if (node.kind === 'leaf') {
+      return <div className="flex-1 border border-muted-foreground/30 rounded-sm" />;
+    }
+
+    const splitNode = node as SplitNode;
+    const isHorizontal = splitNode.direction === 'horizontal';
+    
+    return (
+      <div className={`flex ${isHorizontal ? 'flex-row' : 'flex-col'} gap-px flex-1`}>
+        {splitNode.children.map((child, i) => (
+          <div 
+            key={i} 
+            className="flex-1 min-w-0 min-h-0"
+            style={{ flex: splitNode.sizes[i] }}
+          >
+            {child.kind === 'leaf' ? (
+              <div className="w-full h-full border border-muted-foreground/30 rounded-sm" />
+            ) : (
+              renderStructurePreview(child as SplitNode)
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderPagePreview = (page: SplitNode, index: number) => {
     const pageInfo = pageInfos[index];
     const isHidden = pageInfo?.hidden || false;
@@ -115,8 +147,8 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
           >
             {/* Thumbnail */}
             <div 
-              className="w-16 h-22 rounded border-2 border-border bg-card flex items-center justify-center relative overflow-hidden"
-              style={{ aspectRatio: '0.707' }}
+              className={`${thumbWidth} rounded border border-border bg-card flex items-center justify-center relative overflow-hidden`}
+              style={{ aspectRatio }}
             >
               {/* Outline preview of page structure */}
               <div className="absolute inset-1 flex flex-col gap-0.5">
@@ -124,14 +156,14 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
               </div>
               
               {/* Page number badge */}
-              <div className="absolute bottom-0.5 right-0.5 text-[10px] font-mono text-muted-foreground bg-background/80 px-1 rounded">
+              <div className="absolute bottom-0.5 right-0.5 text-[9px] font-mono text-muted-foreground bg-background/80 px-0.5 rounded">
                 #{index + 1}
               </div>
               
               {/* Hidden indicator */}
               {isHidden && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-3 w-3 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -143,11 +175,11 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
                 onChange={(e) => setEditName(e.target.value)}
                 onBlur={handleFinishRename}
                 onKeyDown={(e) => e.key === 'Enter' && handleFinishRename()}
-                className="w-16 h-5 text-[10px] mt-1 px-1"
+                className={`${thumbWidth} h-4 text-[9px] mt-1 px-1`}
                 autoFocus
               />
             ) : (
-              <p className="text-[10px] text-center text-muted-foreground mt-1 truncate w-16">
+              <p className={`text-[9px] text-center text-muted-foreground mt-1 truncate ${thumbWidth}`}>
                 {pageName}
               </p>
             )}
@@ -189,33 +221,6 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
     );
   };
 
-  const renderStructurePreview = (node: SplitNode | { kind: 'leaf' }): React.ReactNode => {
-    if (node.kind === 'leaf') {
-      return <div className="flex-1 border border-border/50 rounded-sm bg-muted/30" />;
-    }
-
-    const splitNode = node as SplitNode;
-    const isHorizontal = splitNode.direction === 'horizontal';
-    
-    return (
-      <div className={`flex ${isHorizontal ? 'flex-row' : 'flex-col'} gap-0.5 flex-1`}>
-        {splitNode.children.map((child, i) => (
-          <div 
-            key={i} 
-            className="flex-1 min-w-0 min-h-0"
-            style={{ flex: splitNode.sizes[i] }}
-          >
-            {child.kind === 'leaf' ? (
-              <div className="w-full h-full border border-border/50 rounded-sm bg-muted/30" />
-            ) : (
-              renderStructurePreview(child as SplitNode)
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <>
       <div className="border-t border-border bg-card/50 p-2">
@@ -224,7 +229,7 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 flex-shrink-0"
+            className="h-7 w-7 flex-shrink-0"
             onClick={scrollLeft}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -233,10 +238,11 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
           {/* Scrollable thumbnail area */}
           <div 
             ref={scrollRef}
-            className="flex-1 overflow-x-auto scrollbar-hide"
+            className="flex-1 overflow-x-auto"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <div className="flex gap-3 py-1 px-1">
+            <style>{`.page-tray-scroll::-webkit-scrollbar { display: none; }`}</style>
+            <div className="flex gap-2 py-1 px-1 page-tray-scroll">
               {pages.map((page, index) => renderPagePreview(page, index))}
               
               {/* Add new page button */}
@@ -244,8 +250,8 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-16 flex-shrink-0 border-dashed"
-                    style={{ aspectRatio: '0.707' }}
+                    className={`${thumbWidth} flex-shrink-0 border-dashed`}
+                    style={{ aspectRatio }}
                     onClick={onAddPage}
                   >
                     <Plus className="h-4 w-4" />
@@ -260,7 +266,7 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 flex-shrink-0"
+            className="h-7 w-7 flex-shrink-0"
             onClick={scrollRight}
           >
             <ChevronRight className="h-4 w-4" />
@@ -272,7 +278,7 @@ export const PageThumbnailTray: React.FC<PageThumbnailTrayProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 flex-shrink-0"
+                className="h-7 w-7 flex-shrink-0"
                 onClick={() => setShowBulkRename(true)}
               >
                 <ListOrdered className="h-4 w-4" />

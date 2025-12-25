@@ -168,7 +168,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   onTextPropsChange
 }) => {
   return (
-    <div className="h-full border-r border-border bg-card shadow-card overflow-y-auto">
+    <div className="h-full border-r border-border bg-card shadow-card overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <div className="p-4">
         <Tabs defaultValue="builder" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
@@ -315,17 +315,21 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-3">View</h4>
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <IconButton onClick={onZoomIn} icon={ZoomIn} label="Zoom In (Ctrl++)" />
-                  <span className="text-xs text-muted-foreground flex-1 text-center">
+                <div className="flex items-center gap-1">
+                  <Button onClick={onZoomOut} variant="ghost" size="icon" className="h-7 w-7">
+                    <ZoomOut className="h-3 w-3" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground w-10 text-center font-mono">
                     {Math.round(zoom * 100)}%
                   </span>
-                  <IconButton onClick={onZoomOut} icon={ZoomOut} label="Zoom Out (Ctrl+-)" />
+                  <Button onClick={onZoomIn} variant="ghost" size="icon" className="h-7 w-7">
+                    <ZoomIn className="h-3 w-3" />
+                  </Button>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className={`flex items-center space-x-2 p-2 rounded-md transition-colors ${outline ? 'bg-primary/20 ring-1 ring-primary' : ''}`}>
                   <Switch id="outlines" checked={outline} onCheckedChange={onOutlineChange} />
-                  <Label htmlFor="outlines" className="text-xs text-muted-foreground">Show Outlines</Label>
+                  <Label htmlFor="outlines" className={`text-xs ${outline ? 'text-primary font-medium' : 'text-muted-foreground'}`}>Show Outlines</Label>
                 </div>
               </div>
             </div>

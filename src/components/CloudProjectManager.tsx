@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -237,14 +238,24 @@ export const CloudProjectManager = ({ currentProject, onLoadProject, onSaveProje
   if (!user) {
     return (
       <div className="flex gap-2">
-        <Button disabled variant="outline">
-          <Save className="mr-2 h-4 w-4" />
-          Save (Login Required)
-        </Button>
-        <Button disabled variant="outline">
-          <FolderOpen className="mr-2 h-4 w-4" />
-          Load (Login Required)
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button disabled variant="outline" size="icon" className="relative">
+              <Save className="h-4 w-4" />
+              <span className="absolute -top-1 -right-1 text-destructive text-xs font-bold">*</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Save (Login Required)</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button disabled variant="outline" size="icon" className="relative">
+              <FolderOpen className="h-4 w-4" />
+              <span className="absolute -top-1 -right-1 text-destructive text-xs font-bold">*</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Load (Login Required)</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
